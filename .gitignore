@@ -8,3 +8,7 @@
 *.sqlite-journal
 /.vs/slnx.sqlite
 *.vsidx
+/.vs/VSWorkspaceState.json
+*.json
+/.vs/Trabajos/v17/.wsuo
+/.gitignore
