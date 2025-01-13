@@ -11,7 +11,7 @@ func main() {
 
 	nc.Subscribe("Respuesta", func(m *nats.Msg) {
 		fmt.Printf("Recibido: %s\n", string(m.Data))
-		m.Respond([]byte("Imagen Ejecutado  worker"))
+		m.Respond([]byte("Imagen Ejecutado  worker1"))
 	})
 	fmt.Printf("Se Ejecuto la imagen del worker")
 
