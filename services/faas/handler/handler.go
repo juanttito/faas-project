@@ -5,7 +5,7 @@ import (
     "encoding/json"
     "fmt"
     "github.com/nats-io/nats.go"
-    "github.com/redis/go-redis/v9"
+    "github.com/go-redis/redis/v8"
 )
 
 var ctx = context.Background()
@@ -13,8 +13,10 @@ var redisClient *redis.Client
 var natsConn *nats.Conn
 
 func InitConnections() {
+
+    //redisClient := redis.NewClient(&redis.Options{Addr: "redis:6379"})
     redisClient = redis.NewClient(&redis.Options{
-        Addr: "localhost:6379",
+        Addr: "redis:6379",
     })
     var err error
     natsConn, err = nats.Connect(nats.DefaultURL)
