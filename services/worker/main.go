@@ -9,9 +9,10 @@ func main() {
 	nc, _ := nats.Connect("nats://nats:4222")
 	defer nc.Close()
 
-	nc.Subscribe("Peticion", func(m *nats.Msg) {
+	nc.Subscribe("Respuesta", func(m *nats.Msg) {
 		fmt.Printf("Recibido: %s\n", string(m.Data))
-		nc.Publish("Respuesta", []byte("Trabajo completado"))
+		m.Respond([]byte("Imagen Ejecutado"))
 	})
-	select {}
+	fmt.Printf("Se Ejecuto la imagen del worker")
+
 }

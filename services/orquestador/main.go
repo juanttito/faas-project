@@ -2,63 +2,161 @@ package main
 
 import (
 	"encoding/json"
+	"context"
 	"fmt"
 	"log"
-	"net/http"
-
+	"time"
+	"os"
+	"io"
+	"bytes"
 	"github.com/nats-io/nats.go"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 )
-
-type Trabajo struct {
+var cli *client.Client
+var err error
+// Estructura para mapear el JSON recibido
+type Message struct {
 	Funcion   string `json:"funcion"`
 	Parametro string `json:"parametro"`
 }
 
 func main() {
-
+	//ctx := context.Background()
+	// Configurar cliente Docker
+	//var err error
+	cli, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Fatalf("Error creando cliente Docker: %v", err)
+	}
+	// Conexión a NATS
 	nc, err := nats.Connect("nats://nats:4222")
 	if err != nil {
 		log.Fatalf("Error al conectar a NATS: %v", err)
 	}
 	defer nc.Close()
 
-	nc.Subscribe("Respuesta", func(m *nats.Msg) {
-		fmt.Printf("Respuesta: %s\n", string(m.Data))
-		//nc.Publish("Respuesta", []byte("Trabajo completado"))
+	// Monitorizar mensajes de trabajo
+	go monitorJobs(nc)
+	fmt.Println("Servicio en ejecución...")
+	select {} // Mantener el servicio en ejecución
+
+
+}
+func monitorJobs(nc *nats.Conn) {
+	//for {
+		/*msg, err := nc.Request("Peticion", []byte("¿Hay trabajo?"), 2*time.Second)
+		if err == nil && string(msg.Data) == "Trabajo disponible" {
+			fmt.Println("Trabajo detectado, creando un nuevo worker...")
+			err := createWorker()
+			if err != nil {
+				log.Printf("Error creando Worker: %v", err)
+			}
+		}*/
+		// Imagen de Docker y comando a ejecutar
+	//imageName := "busybox"
+	command := []string{"echo", "Hola desde Docker con Go!"}
+
+	nc.Subscribe("Peticion", func(m *nats.Msg) {
+
+		var mensaje Message
+
+		// Deserializar el mensaje JSON
+		err := json.Unmarshal(m.Data, &mensaje)
+		if err != nil {
+			log.Printf("Error deserializando mensaje JSON: %v", err)
+			return
+		}
+		
+		fmt.Printf("Recibido: %s\n", string(m.Data))
+		stdout, err := createWorker(mensaje.Funcion, command)
+		if err != nil {
+			log.Fatalf("Error gestionando contenedor: %v", err)
+		}
+		fmt.Printf(stdout)
+		m.Respond([]byte(stdout))
+			
 	})
 
-	// Endpoint para registrar trabajo
-	http.HandleFunc("/api/registrartrabajo", func(w http.ResponseWriter, r *http.Request) {
-		// Verifica que el método sea POST
-		if r.Method != http.MethodPost {
-			http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
-			return
-		}
+	select {}
 
-		// Leer el cuerpo de la solicitud
-		var trabajo Trabajo
-		err := json.NewDecoder(r.Body).Decode(&trabajo)
+}
+
+// Gestiona un contenedor basado en la imagen de Docker proporcionada y devuelve el stdout
+func createWorker(imageName string, command []string) (string, error) {
+	ctx := context.Background()
+	containerName := fmt.Sprintf("worker-%d", time.Now().UnixNano())
+
+	// Crear cliente Docker
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return "", fmt.Errorf("error creando cliente Docker: %w", err)
+	}
+
+	// Verificar si la imagen existe localmente
+	fmt.Println("Verificando imagen:", imageName)
+	_, _, err = cli.ImageInspectWithRaw(ctx, imageName)
+	if err != nil {
+		// Descargar la imagen si no existe
+		fmt.Println("Imagen no encontrada localmente. Descargando:", imageName)
+		out, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
 		if err != nil {
-			http.Error(w, "Error al leer el cuerpo de la solicitud", http.StatusBadRequest)
-			return
+			return "", fmt.Errorf("error descargando imagen: %w", err)
 		}
+		defer out.Close()
+		io.Copy(os.Stdout, out)
+	}
 
-		// Crear el mensaje con el trabajo recibido
-		msg := fmt.Sprintf("Funcion: %s, Parametro: %s", trabajo.Funcion, trabajo.Parametro)
+	// Crear el contenedor
+	fmt.Printf("Creando Worker: %s\n", containerName)
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: imageName, // Imagen Docker de tu worker
+		//Cmd:   command,
+		Tty:   false,
+	}, nil, nil, nil, containerName)
+	if err != nil {
+		return "", fmt.Errorf("error creando contenedor: %w", err)
+	}
 
-		// Publicar el mensaje en el tópico "Peticion" de NATS
-		err = nc.Publish("Peticion", []byte(msg))
+	// Iniciar el contenedor
+	fmt.Println("Iniciando Worker...")
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return "", fmt.Errorf("error iniciando contenedor: %w", err)
+	}
+
+	// Esperar a que el contenedor termine
+	fmt.Println("Esperando finalización del contenedor...")
+	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
 		if err != nil {
-			http.Error(w, "Error al enviar mensaje a NATS", http.StatusInternalServerError)
-			return
+			return "", fmt.Errorf("error esperando contenedor: %w", err)
 		}
+	case <-statusCh:
+	}
+	// Capturar los logs del contenedor
+	fmt.Println("Capturando logs del contenedor...")
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
+	if err != nil {
+		return "", fmt.Errorf("error obteniendo logs del contenedor: %w", err)
+	}
+	defer out.Close()
+	//io.Copy(os.Stdout, out)
 
-		// Responder al cliente
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Trabajo registrado y mensaje enviado a NATS"))
-	})
+	// Leer logs en un buffer
+	var stdoutBuf bytes.Buffer
+	if _, err := io.Copy(&stdoutBuf, out); err != nil {
+		return "", fmt.Errorf("error leyendo logs del contenedor: %w", err)
+	}
 
-	// Iniciar el servidor HTTP
-	log.Println("Servidor en ejecución en http://localhost:8002")
-	log.Fatal(http.ListenAndServe(":8002", nil))
+	// Limpiar el contenedor
+	fmt.Println("\nLimpiando contenedor...")
+	if err := cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true}); err != nil {
+		return "", fmt.Errorf("error eliminando contenedor: %w", err)
+	}
+
+	fmt.Println("Ejecución completada exitosamente.")
+
+	return stdoutBuf.String(), nil
 }
