@@ -3,3 +3,4 @@ WORKDIR /app
 COPY . .
 RUN go mod tidy && go build -o faas .
 CMD ["./faas"]
+
