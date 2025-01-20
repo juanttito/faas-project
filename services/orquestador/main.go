@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"context"
 	"fmt"
 	"log"
@@ -60,17 +59,19 @@ func monitorJobs(nc *nats.Conn) {
 
 	nc.Subscribe("Peticion", func(m *nats.Msg) {
 
-		var mensaje Message
+		//var mensaje string
 
 		// Deserializar el mensaje JSON
+		/*/
 		err := json.Unmarshal(m.Data, &mensaje)
 		if err != nil {
 			log.Printf("Error deserializando mensaje JSON: %v", err)
 			return
 		}
-		
+		*/
+		messageContent := string(m.Data)
 		fmt.Printf("Recibido: %s\n", string(m.Data))
-		stdout, err := createWorker(mensaje.Funcion, command)
+		stdout, err := createWorker(messageContent, command)
 		if err != nil {
 			log.Fatalf("Error gestionando contenedor: %v", err)
 		}

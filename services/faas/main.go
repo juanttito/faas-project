@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 	"github.com/go-redis/redis/v8"
+	"github.com/nats-io/nats.go"
 	"context"
 )
 
@@ -106,6 +108,32 @@ func llamarFunction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Conexion a NATS
+	nc, err := nats.Connect("nats://nats:4222")
+	if err != nil {
+		log.Fatalf("Error al conectar a NATS:", err)
+		http.Error(w, "Error al conectar a NATS", http.StatusInternalServerError)
+		return
+	}
+	defer nc.Close()
+
+	// Enviar la solicitud a traves de NATS y esperar una respuesta
+	msg, err := nc.Request("Peticion", []byte(code), 50*time.Second)
+	log.Printf(string(msg.Data))
+	if err != nil {
+		log.Printf("Error al procesar la solicitud en NATS: %v", err)
+		http.Error(w, "Error al procesar la solicitud en NATS", http.StatusInternalServerError)
+		return
+	}
+
+	// Preparar la respuesta al cliente
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": string(msg.Data)}); err != nil {
+		log.Printf("Error al codificar la respuesta JSON: %v", err)
+		http.Error(w, "Error al generar la respuesta", http.StatusInternalServerError)
+	}
+
+	/*
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"mensaje": "Función ejecutada con éxito",
@@ -114,6 +142,7 @@ func llamarFunction(w http.ResponseWriter, r *http.Request) {
 			"codigo":          code,
 		},
 	})
+	*/
 }
 
 func main() {
