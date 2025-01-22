@@ -8,9 +8,11 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/nats-io/nats.go"
 	"context"
+
 )
 
 var ctx = context.Background()
+var authServiceURL = "http://auth:8000/api/validarusuario" // URL del servicio Auth
 
 type Function struct {
 	Usuario string `json:"usuario"`
@@ -21,15 +23,50 @@ type Function struct {
 // Registrar una nueva función
 func registerFunction(w http.ResponseWriter, r *http.Request) {
 	var fn Function
-	err := json.NewDecoder(r.Body).Decode(&fn)
+
+	//Validamos permisos de usuario
+	// Obtener el token del encabezado Authorization
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token requerido", http.StatusUnauthorized)
+		return
+	}
+
+	// Crear la solicitud HTTP para llamar a /validate en el servicio Auth
+	req, err := http.NewRequest("GET", authServiceURL, nil)
+	if err != nil {
+		http.Error(w, "Error creando la solicitud", http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", token)
+
+	// Realizar la solicitud
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Error llamando al servicio Auth", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Verificar la respuesta del servicio Auth
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	//fin de validacion
+
+	err = json.NewDecoder(r.Body).Decode(&fn)
 	if err != nil {
 		http.Error(w, "Carga JSON inválida", http.StatusBadRequest)
 		return
 	}
 
-	client := redis.NewClient(&redis.Options{Addr: "redis:6379"})
-	result, err := client.HSet(ctx, "functions", fn.Funcion, fn.Codigo).Result()
+	cliente := redis.NewClient(&redis.Options{Addr: "redis:6379"})
+	result, err := cliente.HSet(ctx, "functions", fn.Funcion, fn.Codigo).Result()
 	if err != nil {
+		log.Printf(err.Error())
 		http.Error(w, "No se pudo registrar la función en Redis", http.StatusInternalServerError)
 		return
 	}
@@ -49,14 +86,48 @@ func registerFunction(w http.ResponseWriter, r *http.Request) {
 // Desregistrar una función existente
 func unregisterFunction(w http.ResponseWriter, r *http.Request) {
 	var fn Function
-	err := json.NewDecoder(r.Body).Decode(&fn)
+
+		//Validamos permisos de usuario
+	// Obtener el token del encabezado Authorization
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token requerido", http.StatusUnauthorized)
+		return
+	}
+
+	// Crear la solicitud HTTP para llamar a /validate en el servicio Auth
+	req, err := http.NewRequest("GET", authServiceURL, nil)
+	if err != nil {
+		http.Error(w, "Error creando la solicitud", http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", token)
+
+	// Realizar la solicitud
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Error llamando al servicio Auth", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Verificar la respuesta del servicio Auth
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	//fin de validacion
+
+	err = json.NewDecoder(r.Body).Decode(&fn)
 	if err != nil {
 		http.Error(w, "Carga JSON inválida", http.StatusBadRequest)
 		return
 	}
 
-	client := redis.NewClient(&redis.Options{Addr: "redis:6379"})
-	result, err := client.HDel(ctx, "functions", fn.Funcion).Result()
+	cliente := redis.NewClient(&redis.Options{Addr: "redis:6379"})
+	result, err := cliente.HDel(ctx, "functions", fn.Funcion).Result()
 	if err != nil {
 		http.Error(w, "No se pudo desregistrar la función de Redis", http.StatusInternalServerError)
 		return
@@ -82,16 +153,50 @@ func unregisterFunction(w http.ResponseWriter, r *http.Request) {
 // Llamar a una función registrada
 func llamarFunction(w http.ResponseWriter, r *http.Request) {
 	var fn Function
-	err := json.NewDecoder(r.Body).Decode(&fn)
+
+	//Validamos permisos de usuario
+	// Obtener el token del encabezado Authorization
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token requerido", http.StatusUnauthorized)
+		return
+	}
+
+	// Crear la solicitud HTTP para llamar a /validate en el servicio Auth
+	req, err := http.NewRequest("GET", authServiceURL, nil)
+	if err != nil {
+		http.Error(w, "Error creando la solicitud", http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", token)
+
+	// Realizar la solicitud
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Error llamando al servicio Auth", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Verificar la respuesta del servicio Auth
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	//fin de validacion
+
+	err = json.NewDecoder(r.Body).Decode(&fn)
 	if err != nil {
 		http.Error(w, "Carga JSON inválida", http.StatusBadRequest)
 		return
 	}
 
-	client := redis.NewClient(&redis.Options{Addr: "redis:6379"})
+	cliente := redis.NewClient(&redis.Options{Addr: "redis:6379"})
 
 	// Verificar si la función existe
-	exists, err := client.HExists(ctx, "functions", fn.Funcion).Result()
+	exists, err := cliente.HExists(ctx, "functions", fn.Funcion).Result()
 	if err != nil || !exists {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -102,7 +207,8 @@ func llamarFunction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Recuperar el código de la función
-	code, err := client.HGet(ctx, "functions", fn.Funcion).Result()
+	code, err := cliente.HGet(ctx, "functions", fn.Funcion).Result()
+	log.Printf(string(code))
 	if err != nil {
 		http.Error(w, "No se pudo recuperar el código de la función", http.StatusInternalServerError)
 		return

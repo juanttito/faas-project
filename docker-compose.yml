@@ -6,6 +6,8 @@ services:
       - "8000:8000"
     depends_on:
       - redis
+    networks:
+      - app-network
 
   faas:
     build: ./services/faas
@@ -14,6 +16,9 @@ services:
     depends_on:
       - redis
       - nats
+      - auth
+    networks:
+      - app-network 
 
   orquestador:
     build: ./services/orquestador
@@ -24,6 +29,8 @@ services:
     depends_on:
       - redis
       - nats
+    networks:
+      - app-network
 
   worker:
     build: ./services/worker
@@ -31,6 +38,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - nats
+    networks:
+      - app-network
 
   redis:
     image: redis:latest
@@ -38,8 +47,16 @@ services:
       - "6379:6379"
     volumes:
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - app-network
 
   nats:
     image: nats:latest
     ports:
       - "4222:4222"
+    networks:
+      - app-network
+
+networks:
+    app-network:
+        driver: bridge

@@ -73,6 +73,7 @@ func monitorJobs(nc *nats.Conn) {
 		fmt.Printf("Recibido: %s\n", string(m.Data))
 		stdout, err := createWorker(messageContent, command)
 		if err != nil {
+			m.Respond([]byte(err.Error()))
 			log.Fatalf("Error gestionando contenedor: %v", err)
 		}
 		fmt.Printf(stdout)
