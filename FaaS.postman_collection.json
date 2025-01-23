@@ -1,0 +1,203 @@
+{
+	"info": {
+		"_postman_id": "7fd42bd1-785b-4b7d-87b7-b7d12eda929a",
+		"name": "FaaS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "8180723"
+	},
+	"item": [
+		{
+			"name": "http://localhost:8000/api/registro",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n \"usuario\": \"test_user\",\r\n \"correo\": \"correo@example.com\",\r\n \"pswd\": \"12564546\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/registro",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"registro"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8000/api/validarusuario",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb3JyZW8iOiJjb3JyZW9AZXhhbXBsZS5jb20ifQ.12K-KFP3ZIpE7O9FXZTnz8NcYWywShDUmbnAMyQtnPM",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/validarusuario",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"validarusuario"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8001/api/registrafuncion",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb3JyZW8iOiJjb3JyZW9AZXhhbXBsZS5jb20ifQ.12K-KFP3ZIpE7O9FXZTnz8NcYWywShDUmbnAMyQtnPM",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"usuario\": \"test_user\",\r\n  \"funcion\": \"hello\",\r\n  \"codigo\": \"hello-world\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8001/api/registrafuncion",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8001",
+					"path": [
+						"api",
+						"registrafuncion"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8001/api/desregistrafuncion",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb3JyZW8iOiJjb3JyZW9AZXhhbXBsZS5jb20ifQ.12K-KFP3ZIpE7O9FXZTnz8NcYWywShDUmbnAMyQtnPM",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"usuario\": \"test_user\",\r\n  \"funcion\": \"hello\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8001/api/desregistrafuncion",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8001",
+					"path": [
+						"api",
+						"desregistrafuncion"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8001/api/llamarfuncion",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb3JyZW8iOiJjb3JyZW9AZXhhbXBsZS5jb20ifQ.12K-KFP3ZIpE7O9FXZTnz8NcYWywShDUmbnAMyQtnPM",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"usuario\": \"test_user\",\r\n  \"funcion\": \"hello\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8001/api/llamarfuncion",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8001",
+					"path": [
+						"api",
+						"llamarfuncion"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
